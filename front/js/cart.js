@@ -1,5 +1,7 @@
 import { storage } from "./utils.js";
 
+const ERROR_MSG = "Chaine de caractere non valide."
+
 //  User localStorage
 let cart = storage();
 console.log(cart);
@@ -67,11 +69,24 @@ kanapTotalQuantity.innerHTML = qty;
 
 // form / confirmation cart
 
+//letter only first & lastname 
+function onlyLetter(value) {
+  const regex = new RegExp(/^[A-Za-z]+$/);
+  return !regex.test(value)
+}
+
 
 const order = document.querySelector("#order")
 order.addEventListener("click", function(event) {
   //cart
   event.preventDefault();
+  const errorFirstNameMsg = document.querySelector("#firstNameErrorMsg")
+  const errorLastNameMsg = document.querySelector("#lastNameErrorMsg")
+  const isInvalidFirstName = onlyLetter(firstName.value);
+  const isInvalidLastName = onlyLetter(lastName.value);
+  if(isInvalidFirstName) {errorFirstNameMsg.innerHTML = ERROR_MSG ;} else errorFirstNameMsg.innerHTML = "";
+  if(isInvalidLastName) {errorLastNameMsg.innerHTML = ERROR_MSG;} else errorLastNameMsg.innerHTML = "";
+  if(isInvalidFirstName || isInvalidLastName) return;
   const listProductId = cart.map(el => el.body.idProduct); // map to get list productId only
   const listProductNoDuplicate = [...new Set(listProductId)]; // no duplicate 
   const regex = new RegExp(/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/,'g');
@@ -98,8 +113,8 @@ order.addEventListener("click", function(event) {
   }).then(function(response){
     return response.json()
   }).then(function(data){
+    storage('delete');
     window.location = `./confirmation.html?id=${data.orderId}`;
-    storage("set","");
   })
 });
 
