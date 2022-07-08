@@ -39,31 +39,77 @@ const kanapTemplate = ({
   </article>`;
 
 let kanapstring = "";
-cart.forEach((element) => {
-    kanapstring += kanapTemplate(element);
-    // add Total price & quantity
-    price += parseInt(element.body.price);
-    qty += parseInt(element.quantity);
-});
-kanapElement.innerHTML = kanapstring;
-kanapTotalPrice.innerHTML = price;
-kanapTotalQuantity.innerHTML = qty;
 
-// remove product to cart
-  document.querySelectorAll(".deleteItem").forEach(el => el.addEventListener("click", function(event) {
-  const parent = event.target.parentElement.parentElement.parentElement.parentElement;
-  const {id, color} = parent.dataset;
-  parent.outerHTML = "";
-  cart = cart.filter(el => {
-    if(el.id !== id + color) return true;
-    price += -parseInt(el.body.price);
-    qty += -parseInt(el.quantity);
-    return false;
-  })
+(async() => {
+  const fetchListProduct = cart.map(async el => (await fetch(`http://localhost:3000/api/products/${el.body.idProduct}`)).json());
+  const promiseListProduct = await Promise.all(fetchListProduct);
+  cart = cart.map((element,index) => {
+    const priceFetch = promiseListProduct[index].price
+     const newElement = {
+      ...element,
+      body:{
+        ...element.body,
+        price:priceFetch
+      }
+    };
+      kanapstring += kanapTemplate(newElement);
+      // add Total price & quantity
+      price += parseInt(priceFetch) * parseInt(element.quantity);
+      qty += parseInt(element.quantity);
+      return newElement;
+  });
+  kanapElement.innerHTML = kanapstring;
   kanapTotalPrice.innerHTML = price;
   kanapTotalQuantity.innerHTML = qty;
-  storage("set",cart);
-}) )
+})();
+
+document.addEventListener("change",(e) => {
+  const target = e.target;
+  if(target.classList.contains("itemQuantity")) {
+    qty = 0;
+    price = 0;
+    const parent = target.parentElement.parentElement.parentElement.parentElement;
+    const {id,color} = parent.dataset;
+    cart = cart.map(el => {
+      
+      if(el.id !== id + color) {
+        qty += parseInt(el.quantity);
+        price += parseInt(el.body.price) * parseInt(el.quantity);
+        return el;
+      }
+      else {
+        qty += parseInt(target.value);
+        price += parseInt(el.body.price) * parseInt(target.value); 
+        return {
+          ...el,
+          quantity:target.value
+        }
+      }
+    })
+
+    kanapTotalPrice.innerHTML = price;
+    kanapTotalQuantity.innerHTML = qty;
+  }
+});
+
+document.addEventListener("click",e => {
+  const target = e.target;
+  if(target.classList.contains("deleteItem")) {
+    const parent = e.target.parentElement.parentElement.parentElement.parentElement;
+    const {id, color} = parent.dataset;
+    parent.outerHTML = "";
+    cart = cart.filter(el => {
+      console.log(el);
+      if(el.id !== id + color) return true;
+      price += -parseInt(el.body.price) * parseInt(el.quantity);
+      qty += -parseInt(el.quantity);
+      return false;
+    })
+    kanapTotalPrice.innerHTML = price;
+    kanapTotalQuantity.innerHTML = qty;
+    storage("set",cart);
+  }
+})
 
 
 
@@ -102,7 +148,6 @@ order.addEventListener("click", function(event) {
     },
     products:listProductNoDuplicate
   }
-  console.log(bodyToSend);
   fetch(`http://localhost:3000/api/products/order`,{
     method:"POST",
     headers: {

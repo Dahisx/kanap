@@ -33,7 +33,7 @@ fetch(`http://localhost:3000/api/products/${id}`).then(function(response){
 
 kanapCartElement.addEventListener("click", addKanapToKart)
 
-// revoie valeur innertext
+// return value innertext
 function getValue(element,target = "text") {
     if(target === "value") return element.value;
     return element.innerText;
@@ -42,29 +42,29 @@ function getValue(element,target = "text") {
 // function add
 function addKanapToKart (event) {
     event.preventDefault();
-    const title = getValue(titleElement);
-    const price = getValue(priceElement);
-    const description = getValue(descriptionElement);
+    const quantity = parseInt(getValue(quantityElement,'value'));
     const color = getValue(colorElement,'value');
-    const quantity = getValue(quantityElement,'value');
     if(!color || !quantity) return alert("veuillez selectionner une couleur et une quantité");
+    const title = getValue(titleElement);
+    const description = getValue(descriptionElement);
+    
     const idUnique = idProduct + color;
     const body = {
         title,
-        price,
         description,
         image,
         color,
         idProduct,
     };
     console.log(body);
-    saveLocalKanap(idUnique,body,parseInt(quantity))
+    const isSaved = saveLocalKanap(idUnique,body,quantity);
+    if(!isSaved) return alert("Votre quantite depasse le maximum autorise");
     return alert('Votre article à ete ajouter au panier.');
 }
 
 //save in localStorage
 function saveLocalKanap (idUnique,body,quantity) {
-    
+    let bool = true;
     const value = storage();
     const kanap = {
         id:idUnique,
@@ -75,9 +75,15 @@ function saveLocalKanap (idUnique,body,quantity) {
     if (!value) storage('set',[kanap]); // 1st time localStorage Data
     else {
         const index = value.findIndex(el => el.id === idUnique);
+        const totalQuantity = parseInt(value[index]?.quantity) + quantity;
+        if(totalQuantity > 100) {
+            bool = false;
+            return bool;
+        }
         if(index === -1) value.push(kanap);
-        else value[index].quantity = parseInt(value[index].quantity) + quantity;
+        else value[index].quantity = totalQuantity;
         storage('set',value);
+        return bool;
     }
 }
 
